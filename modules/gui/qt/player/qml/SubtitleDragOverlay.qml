@@ -29,6 +29,7 @@ MouseArea {
     property real dragStartY: 0
     property int currentMargin: 0  // Tracks the accumulated margin across drag sessions
     property int dragSessionStartMargin: 0  // Margin at the start of current drag
+    property int lastAppliedMargin: 0  // Last margin value sent to backend
     property real lastMouseY: 0
     
     anchors.fill: parent
@@ -43,6 +44,7 @@ MouseArea {
             dragStartY = mouse.y
             lastMouseY = mouse.y
             dragSessionStartMargin = currentMargin
+            lastAppliedMargin = currentMargin
             cursorShape = Qt.ClosedHandCursor
             mouse.accepted = true
         } else {
@@ -72,8 +74,12 @@ MouseArea {
             const deltaY = mouse.y - dragStartY
             const newMargin = Math.max(0, dragSessionStartMargin - Math.round(deltaY))
             
-            // Update subtitle position
-            Player.setSubtitleMargin(newMargin)
+            // Only update backend if margin value actually changed (throttling)
+            if (newMargin !== lastAppliedMargin) {
+                Player.setSubtitleMargin(newMargin)
+                lastAppliedMargin = newMargin
+            }
+            
             lastMouseY = mouse.y
             mouse.accepted = true
         } else {
@@ -88,6 +94,7 @@ MouseArea {
         visible: subtitleDragOverlay.isDragging
         
         Rectangle {
+            id: feedbackTooltip
             anchors.horizontalCenter: parent.horizontalCenter
             y: Math.min(Math.max(subtitleDragOverlay.lastMouseY - height / 2, 0), parent.height - height)
             width: VLCStyle.dp(240, VLCStyle.scale)
@@ -96,6 +103,14 @@ MouseArea {
             radius: VLCStyle.dp(8, VLCStyle.scale)
             border.color: Qt.rgba(1, 1, 1, 0.3)
             border.width: 1
+            
+            // Smooth animation for position changes
+            Behavior on y {
+                NumberAnimation {
+                    duration: 50
+                    easing.type: Easing.OutQuad
+                }
+            }
             
             Text {
                 anchors.centerIn: parent
