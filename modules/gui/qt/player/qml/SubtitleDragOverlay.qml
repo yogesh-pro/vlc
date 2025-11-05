@@ -20,6 +20,7 @@ import VLC.Player
 import VLC.Style
 
 // Subtitle drag overlay for adjusting subtitle position
+// Activated by holding Ctrl key and dragging in the subtitle area
 MouseArea {
     id: subtitleDragOverlay
 
@@ -27,26 +28,36 @@ MouseArea {
     property bool isDragging: false
     property real dragStartY: 0
     property int initialMargin: 0
+    property real lastMouseY: 0
     
     anchors.fill: parent
     acceptedButtons: Qt.LeftButton
     enabled: Player.hasVideoOutput
+    propagateComposedEvents: true  // Allow events to pass through when not handled
     
-    // Only process events in the lower half where subtitles typically appear
+    // Only activate drag when Ctrl is held and click is in subtitle area
     onPressed: (mouse) => {
-        if (mouse.y > parent.height * 0.4) {
+        if ((mouse.modifiers & Qt.ControlModifier) && mouse.y > parent.height * 0.4) {
             isDragging = true
             dragStartY = mouse.y
-            // Get current margin from config
+            lastMouseY = mouse.y
+            // Start with current margin (assuming 0 for now, could be enhanced to read config)
             initialMargin = 0
             cursorShape = Qt.ClosedHandCursor
+            mouse.accepted = true
+        } else {
+            // Let other components handle the event
+            mouse.accepted = false
         }
     }
     
-    onReleased: {
+    onReleased: (mouse) => {
         if (isDragging) {
             isDragging = false
             cursorShape = Qt.ArrowCursor
+            mouse.accepted = true
+        } else {
+            mouse.accepted = false
         }
     }
     
@@ -60,6 +71,10 @@ MouseArea {
             
             // Update subtitle position
             Player.setSubtitleMargin(newMargin)
+            lastMouseY = mouse.y
+            mouse.accepted = true
+        } else {
+            mouse.accepted = false
         }
     }
     
@@ -71,18 +86,20 @@ MouseArea {
         
         Rectangle {
             anchors.horizontalCenter: parent.horizontalCenter
-            anchors.top: parent.top
-            anchors.topMargin: subtitleDragOverlay.dragStartY - 20
-            width: VLCStyle.dp(200, VLCStyle.scale)
-            height: VLCStyle.dp(40, VLCStyle.scale)
-            color: Qt.rgba(0, 0, 0, 0.7)
+            y: Math.min(Math.max(subtitleDragOverlay.lastMouseY - height / 2, 0), parent.height - height)
+            width: VLCStyle.dp(240, VLCStyle.scale)
+            height: VLCStyle.dp(50, VLCStyle.scale)
+            color: Qt.rgba(0, 0, 0, 0.8)
             radius: VLCStyle.dp(8, VLCStyle.scale)
+            border.color: Qt.rgba(1, 1, 1, 0.3)
+            border.width: 1
             
             Text {
                 anchors.centerIn: parent
-                text: qsTr("Drag to adjust subtitle position")
+                text: qsTr("Adjusting subtitle position...")
                 color: "white"
                 font.pixelSize: VLCStyle.fontSize_normal
+                horizontalAlignment: Text.AlignHCenter
             }
         }
     }

@@ -229,7 +229,7 @@ FocusScope {
                 SubtitleDragOverlay {
                     id: subtitleDragOverlay
                     anchors.fill: parent
-                    z: 10  // Above video surface but below controls
+                    // No z-index needed, will be stacked in order with siblings
                 }
 
                 Rectangle {
