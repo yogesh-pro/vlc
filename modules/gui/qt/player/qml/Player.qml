@@ -226,6 +226,12 @@ FocusScope {
                     }
                 }
 
+                SubtitleDragOverlay {
+                    id: subtitleDragOverlay
+                    anchors.fill: parent
+                    z: 10  // Above video surface but below controls
+                }
+
                 Rectangle {
                     anchors.top: parent.top
                     anchors.left: parent.left
