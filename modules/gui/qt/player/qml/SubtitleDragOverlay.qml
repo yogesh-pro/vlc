@@ -27,7 +27,8 @@ MouseArea {
     // Properties
     property bool isDragging: false
     property real dragStartY: 0
-    property int initialMargin: 0
+    property int currentMargin: 0  // Tracks the accumulated margin across drag sessions
+    property int dragSessionStartMargin: 0  // Margin at the start of current drag
     property real lastMouseY: 0
     
     anchors.fill: parent
@@ -41,8 +42,7 @@ MouseArea {
             isDragging = true
             dragStartY = mouse.y
             lastMouseY = mouse.y
-            // Start with current margin (assuming 0 for now, could be enhanced to read config)
-            initialMargin = 0
+            dragSessionStartMargin = currentMargin
             cursorShape = Qt.ClosedHandCursor
             mouse.accepted = true
         } else {
@@ -55,6 +55,9 @@ MouseArea {
         if (isDragging) {
             isDragging = false
             cursorShape = Qt.ArrowCursor
+            // Update the persistent margin value
+            currentMargin = dragSessionStartMargin - Math.round(mouse.y - dragStartY)
+            currentMargin = Math.max(0, currentMargin)  // Ensure non-negative
             mouse.accepted = true
         } else {
             mouse.accepted = false
@@ -63,11 +66,11 @@ MouseArea {
     
     onPositionChanged: (mouse) => {
         if (isDragging) {
-            // Calculate margin change based on drag distance
-            // Positive deltaY means dragging down, which should decrease margin (move subtitle down)
+            // Calculate margin change based on drag distance from start of this session
+            // Dragging down (positive deltaY) decreases margin (moves subtitle down)
+            // Dragging up (negative deltaY) increases margin (moves subtitle up)
             const deltaY = mouse.y - dragStartY
-            // Convert to margin: each pixel dragged changes margin
-            const newMargin = Math.max(0, initialMargin - Math.round(deltaY))
+            const newMargin = Math.max(0, dragSessionStartMargin - Math.round(deltaY))
             
             // Update subtitle position
             Player.setSubtitleMargin(newMargin)
